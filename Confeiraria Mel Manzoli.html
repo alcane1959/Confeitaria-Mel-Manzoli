@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mel Manzoli Confeitaria</title>
     <style>
-        body { font-family: sans-serif; padding: 15px; background: #fff5f8; color: #333; margin: 0; }
+        body { font-family: sans-serif; padding: 15px; background: #fff5f8; color: #333; margin: 0; padding-bottom: 120px; }
         .header { text-align: center; padding: 20px 0; background: white; border-radius: 0 0 20px 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
         .header h1 { margin: 0; color: #c2185b; font-size: 26px; }
         .header p { margin: 0; color: #e91e63; font-weight: bold; font-size: 14px; }
@@ -16,22 +16,38 @@
         .relatorio-topo span { display: block; font-size: 14px; color: #c2185b; text-transform: uppercase; }
         .relatorio-topo strong { font-size: 32px; color: #c2185b; display: block; margin-top: 5px; }
 
-        input, button { width: 100%; padding: 14px; margin: 8px 0; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; font-size: 16px; }
-        .btn-salvar { background: #e91e63; color: white; border: none; font-weight: bold; font-size: 18px; }
-        .btn-limpar-form { background: #fdf0f4; color: #c2185b; border: 1px solid #f8bbd0; font-weight: normal; font-size: 14px; padding: 10px; }
+        input, button, select { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; font-size: 16px; }
+        
+        .fila-botoes { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
+        
+        /* Botão Gravar Venda - Fundo Branco e Borda Grossa */
+        .btn-salvar { flex: 3; background: white; color: #e91e63; border: 3px solid #e91e63; font-weight: 900; font-size: 16px; margin: 0; cursor: pointer; height: 50px; border-radius: 8px; text-transform: uppercase; }
+        
+        /* Botão Limpar Mini */
+        .btn-limpar-mini { flex: 1.5; background: white; color: #c2185b; border: 2px solid #f8bbd0; font-size: 11px; margin: 0; padding: 5px; height: 50px; font-weight: bold; cursor: pointer; border-radius: 8px; }
 
         .linha-venda { border-bottom: 1px solid #eee; padding: 12px 0; }
         .cliente-nome { font-weight: bold; font-size: 18px; color: #333; }
         .valor-txt { font-weight: bold; color: #e91e63; font-size: 18px; float: right; }
         
-        .acoes { margin-top: 8px; display: flex; gap: 5px; }
-        .btn-acao { flex: 1; padding: 8px; border-radius: 6px; border: none; color: white; font-size: 12px; font-weight: bold; cursor: pointer; }
-        .btn-edit { background: #FF9800; }
-        .btn-del { background: #f44336; }
-        .btn-pedido { background: #25d366; }
+        .badge-pago { font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-left: 5px; vertical-align: middle; }
+        .pago-sim { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+        .pago-nao { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
 
-        .btn-ferramenta { background: #607D8B; color: white; border: none; font-weight: bold; font-size: 14px; }
-        .btn-limpar-mes { background: #f44336; color: white; border: none; font-size: 12px; font-weight: bold; margin-top: 10px; padding: 8px; opacity: 0.8; }
+        /* Botões de Ação na Lista */
+        .acoes { margin-top: 8px; display: flex; gap: 8px; }
+        .btn-acao { flex: 1; padding: 8px; border-radius: 6px; background: white; font-size: 11px; font-weight: bold; cursor: pointer; border: 2px solid; text-transform: uppercase; }
+        .btn-edit { color: #FF9800; border-color: #FF9800; }
+        .btn-pedido { color: #25d366; border-color: #25d366; }
+        .btn-del { color: #f44336; border-color: #f44336; }
+
+        /* Barra Inferior */
+        .barra-inferior { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; padding: 10px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); border-top: 2px solid #eee; z-index: 1000; }
+        .grade-botoes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .btn-rodape { background: white; padding: 8px; border-radius: 8px; font-weight: bold; font-size: 10px; cursor: pointer; text-transform: uppercase; height: 40px; margin: 0; border-width: 2px; border-style: solid; }
+        .btn-backup { color: #2196F3; border-color: #2196F3; }
+        .btn-restaurar { color: #607D8B; border-color: #607D8B; }
+        .btn-clean-mes { color: #f44336; border-color: #f44336; grid-column: span 2; }
     </style>
 </head>
 <body>
@@ -48,26 +64,36 @@
         <input type="text" id="cliente" placeholder="Nome do Cliente">
         <input type="text" id="produto" placeholder="Produto">
         <input type="number" id="valor" placeholder="Valor R$">
-        <button class="btn-salvar" id="btn-salvar" onclick="salvarPedido()">GRAVAR VENDA</button>
-        <button class="btn-limpar-form" onclick="limparCampos()">🧹 Limpar Campos</button>
-        <button id="btn-cancelar" style="display:none; background:#999; color:white;" onclick="cancelarEdicao()">Cancelar Edição</button>
+        <select id="status">
+            <option value="nao">❌ Não Pago</option>
+            <option value="sim">✅ Pago</option>
+        </select>
+        
+        <div class="fila-botoes">
+            <button class="btn-salvar" id="btn-salvar" onclick="salvarPedido()">GRAVAR VENDA</button>
+            <button class="btn-limpar-mini" onclick="limparCampos()">🧹 LIMPAR</button>
+        </div>
+        
+        <button id="btn-cancelar" style="display:none; background:white; color:#999; border:2px solid #999; margin-top:8px; font-weight:bold; height:45px; border-radius:8px;" onclick="cancelarEdicao()">CANCELAR EDIÇÃO</button>
     </div>
 
     <div class="card">
-        <h3>📊 Faturamento do Mês</h3>
+        <h3>📊 Faturamento do Mês (Pagos)</h3>
         <div class="relatorio-topo" id="faturamentoTotal">
-            <span>Total Acumulado</span>
+            <span>Total Recebido</span>
             <strong>R$ 0,00</strong>
-            <button class="btn-limpar-mes" onclick="limparVendasMes()">⚠️ Limpar Vendas do Mês</button>
         </div>
         
         <h3>🛒 Vendas Detalhadas</h3>
         <div id="listaVendas"></div>
     </div>
 
-    <div class="card" style="border-top: 5px solid #666;">
-        <button class="btn-ferramenta" style="background: #2196F3;" onclick="exportarBackup()">📥 Backup do Sistema (Data/Hora)</button>
-        <button class="btn-ferramenta" onclick="document.getElementById('importFile').click()">📂 Restaurar Dados</button>
+    <div class="barra-inferior">
+        <div class="grade-botoes">
+            <button class="btn-rodape btn-backup" onclick="exportarBackup()">📥 Backup (Salvar)</button>
+            <button class="btn-rodape btn-restaurar" onclick="document.getElementById('importFile').click()">📂 Abrir Backup</button>
+            <button class="btn-rodape btn-clean-mes" onclick="limparVendasMes()">⚠️ Limpar Tudo deste Mês</button>
+        </div>
         <input type="file" id="importFile" accept=".json" onchange="importarBackup(event)" style="display: none;">
     </div>
 
@@ -75,15 +101,22 @@
         let pedidos = JSON.parse(localStorage.getItem('pedidos_mel_v6')) || [];
         document.getElementById('data').valueAsDate = new Date();
 
+        function formatarDataBR(dataISO) {
+            if(!dataISO) return "";
+            const [ano, mes, dia] = dataISO.split('-');
+            return `${dia}/${mes}/${ano}`;
+        }
+
         function salvarPedido() {
             const d = document.getElementById('data').value;
             const c = document.getElementById('cliente').value.trim();
             const p = document.getElementById('produto').value.trim();
             const v = parseFloat(document.getElementById('valor').value);
+            const s = document.getElementById('status').value;
             const index = parseInt(document.getElementById('edit-index').value);
 
             if (d && c && p && v) {
-                const novoPedido = { data: d, cliente: c, produto: p, valor: v };
+                const novoPedido = { data: d, cliente: c, produto: p, valor: v, pago: s };
                 if (index === -1) { pedidos.push(novoPedido); } 
                 else { pedidos[index] = novoPedido; cancelarEdicao(); }
                 atualizarTudo();
@@ -108,12 +141,20 @@
                 const p = pedidos[i];
                 const dataPed = new Date(p.data + 'T00:00:00');
                 if (dataPed.getMonth() === mesAtual && dataPed.getFullYear() === anoAtual) {
-                    faturamentoMês += p.valor;
+                    
+                    // CIRURGIA AQUI: Soma apenas se o status for 'sim' (pago)
+                    if (p.pago === 'sim') {
+                        faturamentoMês += p.valor;
+                    }
+
+                    const statusClass = p.pago === 'sim' ? 'pago-sim' : 'pago-nao';
+                    const statusTxt = p.pago === 'sim' ? 'PAGO' : 'PENDENTE';
+                    
                     html += `
                     <div class="linha-venda">
-                        <span class="cliente-nome">${p.cliente}</span>
+                        <span class="cliente-nome">${p.cliente} <span class="badge-pago ${statusClass}">${statusTxt}</span></span>
                         <span class="valor-txt">R$ ${p.valor.toFixed(2)}</span>
-                        <div class="prod-lista">${p.data} - ${p.produto}</div>
+                        <div class="prod-lista">${formatarDataBR(p.data)} - ${p.produto}</div>
                         <div class="acoes">
                             <button class="btn-acao btn-edit" onclick="prepararEdicao(${i})">✏️ Editar</button>
                             <button class="btn-acao btn-pedido" onclick="enviarPedido(${i})">🧾 Pedido</button>
@@ -127,9 +168,9 @@
         }
 
         function limparVendasMes() {
-            const mesAtual = new Date().getMonth();
-            const anoAtual = new Date().getFullYear();
-            if (confirm("Deseja apagar APENAS as vendas deste mês? (Isso não afeta outros meses)")) {
+            if (confirm("Deseja apagar APENAS as vendas deste mês?")) {
+                const mesAtual = new Date().getMonth();
+                const anoAtual = new Date().getFullYear();
                 pedidos = pedidos.filter(p => {
                     const dataPed = new Date(p.data + 'T00:00:00');
                     return dataPed.getMonth() !== mesAtual || dataPed.getFullYear() !== anoAtual;
@@ -144,8 +185,9 @@
             document.getElementById('cliente').value = p.cliente;
             document.getElementById('produto').value = p.produto;
             document.getElementById('valor').value = p.valor;
+            document.getElementById('status').value = p.pago || 'nao';
             document.getElementById('edit-index').value = i;
-            document.getElementById('btn-salvar').innerText = "ATUALIZAR VENDA";
+            document.getElementById('btn-salvar').innerText = "ATUALIZAR";
             document.getElementById('titulo-form').innerText = "✏️ Editando Pedido";
             document.getElementById('btn-cancelar').style.display = "block";
             window.scrollTo(0,0);
@@ -168,7 +210,7 @@
 
         function enviarPedido(i) {
             const p = pedidos[i];
-            const msg = `*PEDIDO - MEL MANZOLI CONFEITARIA*\n\nOlá, *${p.cliente}*!\nDetalhes do pedido:\n\n📅 Data: ${p.data}\n🎂 Produto: ${p.produto}\n💰 Valor: *R$ ${p.valor.toFixed(2)}\n💳 PIX: 121.108.468-01\n\n\nObrigada! 👩🏻‍🍳`;
+            const msg = `*PEDIDO - MEL MANZOLI CONFEITARIA*\n\nOlá, *${p.cliente}*!\nDetalhes do pedido:\n\n📅 Data: ${formatarDataBR(p.data)}\n🎂 Produto: ${p.produto}\n💰 Valor: *R$ ${p.valor.toFixed(2)}*\n💳 PIX: 121.108.468-01\n\n\nObrigada! 👩🏻‍🍳`;
             window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`);
         }
 
@@ -176,7 +218,9 @@
             document.getElementById('cliente').value = "";
             document.getElementById('produto').value = "";
             document.getElementById('valor').value = "";
+            document.getElementById('status').value = "nao";
             document.getElementById('data').valueAsDate = new Date();
+            document.getElementById('edit-index').value = "-1";
         }
 
         function exportarBackup() {
