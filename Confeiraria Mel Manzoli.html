@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mel Manzoli Confeitaria</title>
+    <style>
+        body { font-family: sans-serif; padding: 15px; background: #fff5f8; color: #333; margin: 0; }
+        .header { text-align: center; padding: 20px 0; background: white; border-radius: 0 0 20px 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .header h1 { margin: 0; color: #c2185b; font-size: 26px; }
+        .header p { margin: 0; color: #e91e63; font-weight: bold; font-size: 14px; }
+
+        .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin: 20px 0; border-top: 5px solid #e91e63; }
+        
+        .relatorio-topo { background: #fce4ec; padding: 20px; border-radius: 10px; margin-bottom: 20px; text-align: center; border: 2px solid #f8bbd0; }
+        .relatorio-topo span { display: block; font-size: 14px; color: #c2185b; text-transform: uppercase; }
+        .relatorio-topo strong { font-size: 32px; color: #c2185b; display: block; margin-top: 5px; }
+
+        input, button { width: 100%; padding: 14px; margin: 8px 0; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; font-size: 16px; }
+        .btn-salvar { background: #e91e63; color: white; border: none; font-weight: bold; font-size: 18px; }
+        .btn-limpar-form { background: #fdf0f4; color: #c2185b; border: 1px solid #f8bbd0; font-weight: normal; font-size: 14px; padding: 10px; }
+
+        .linha-venda { border-bottom: 1px solid #eee; padding: 12px 0; }
+        .cliente-nome { font-weight: bold; font-size: 18px; color: #333; }
+        .valor-txt { font-weight: bold; color: #e91e63; font-size: 18px; float: right; }
+        
+        .acoes { margin-top: 8px; display: flex; gap: 5px; }
+        .btn-acao { flex: 1; padding: 8px; border-radius: 6px; border: none; color: white; font-size: 12px; font-weight: bold; cursor: pointer; }
+        .btn-edit { background: #FF9800; }
+        .btn-del { background: #f44336; }
+        .btn-pedido { background: #25d366; }
+
+        .btn-ferramenta { background: #607D8B; color: white; border: none; font-weight: bold; font-size: 14px; }
+        .btn-limpar-mes { background: #f44336; color: white; border: none; font-size: 12px; font-weight: bold; margin-top: 10px; padding: 8px; opacity: 0.8; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>🎂 Mel Manzoli</h1>
+        <p>CONFEITARIA</p>
+    </div>
+
+    <div class="card">
+        <h3 id="titulo-form">📝 Novo Pedido</h3>
+        <input type="hidden" id="edit-index" value="-1">
+        <input type="date" id="data">
+        <input type="text" id="cliente" placeholder="Nome do Cliente">
+        <input type="text" id="produto" placeholder="Produto">
+        <input type="number" id="valor" placeholder="Valor R$">
+        <button class="btn-salvar" id="btn-salvar" onclick="salvarPedido()">GRAVAR VENDA</button>
+        <button class="btn-limpar-form" onclick="limparCampos()">🧹 Limpar Campos</button>
+        <button id="btn-cancelar" style="display:none; background:#999; color:white;" onclick="cancelarEdicao()">Cancelar Edição</button>
+    </div>
+
+    <div class="card">
+        <h3>📊 Faturamento do Mês</h3>
+        <div class="relatorio-topo" id="faturamentoTotal">
+            <span>Total Acumulado</span>
+            <strong>R$ 0,00</strong>
+            <button class="btn-limpar-mes" onclick="limparVendasMes()">⚠️ Limpar Vendas do Mês</button>
+        </div>
+        
+        <h3>🛒 Vendas Detalhadas</h3>
+        <div id="listaVendas"></div>
+    </div>
+
+    <div class="card" style="border-top: 5px solid #666;">
+        <button class="btn-ferramenta" style="background: #2196F3;" onclick="exportarBackup()">📥 Backup do Sistema (Data/Hora)</button>
+        <button class="btn-ferramenta" onclick="document.getElementById('importFile').click()">📂 Restaurar Dados</button>
+        <input type="file" id="importFile" accept=".json" onchange="importarBackup(event)" style="display: none;">
+    </div>
+
+    <script>
+        let pedidos = JSON.parse(localStorage.getItem('pedidos_mel_v6')) || [];
+        document.getElementById('data').valueAsDate = new Date();
+
+        function salvarPedido() {
+            const d = document.getElementById('data').value;
+            const c = document.getElementById('cliente').value.trim();
+            const p = document.getElementById('produto').value.trim();
+            const v = parseFloat(document.getElementById('valor').value);
+            const index = parseInt(document.getElementById('edit-index').value);
+
+            if (d && c && p && v) {
+                const novoPedido = { data: d, cliente: c, produto: p, valor: v };
+                if (index === -1) { pedidos.push(novoPedido); } 
+                else { pedidos[index] = novoPedido; cancelarEdicao(); }
+                atualizarTudo();
+                limparCampos();
+            } else { alert("Preencha tudo!"); }
+        }
+
+        function atualizarTudo() {
+            localStorage.setItem('pedidos_mel_v6', JSON.stringify(pedidos));
+            renderizar();
+        }
+
+        function renderizar() {
+            const listaDiv = document.getElementById('listaVendas');
+            const fatDiv = document.getElementById('faturamentoTotal');
+            let faturamentoMês = 0;
+            const mesAtual = new Date().getMonth();
+            const anoAtual = new Date().getFullYear();
+
+            let html = '';
+            for (let i = pedidos.length - 1; i >= 0; i--) {
+                const p = pedidos[i];
+                const dataPed = new Date(p.data + 'T00:00:00');
+                if (dataPed.getMonth() === mesAtual && dataPed.getFullYear() === anoAtual) {
+                    faturamentoMês += p.valor;
+                    html += `
+                    <div class="linha-venda">
+                        <span class="cliente-nome">${p.cliente}</span>
+                        <span class="valor-txt">R$ ${p.valor.toFixed(2)}</span>
+                        <div class="prod-lista">${p.data} - ${p.produto}</div>
+                        <div class="acoes">
+                            <button class="btn-acao btn-edit" onclick="prepararEdicao(${i})">✏️ Editar</button>
+                            <button class="btn-acao btn-pedido" onclick="enviarPedido(${i})">🧾 Pedido</button>
+                            <button class="btn-acao btn-del" onclick="excluirPedido(${i})">🗑️ Apagar</button>
+                        </div>
+                    </div>`;
+                }
+            }
+            fatDiv.querySelector('strong').innerText = `R$ ${faturamentoMês.toFixed(2)}`;
+            listaDiv.innerHTML = html || "<p style='text-align:center; color:#999;'>Sem vendas este mês.</p>";
+        }
+
+        function limparVendasMes() {
+            const mesAtual = new Date().getMonth();
+            const anoAtual = new Date().getFullYear();
+            if (confirm("Deseja apagar APENAS as vendas deste mês? (Isso não afeta outros meses)")) {
+                pedidos = pedidos.filter(p => {
+                    const dataPed = new Date(p.data + 'T00:00:00');
+                    return dataPed.getMonth() !== mesAtual || dataPed.getFullYear() !== anoAtual;
+                });
+                atualizarTudo();
+            }
+        }
+
+        function prepararEdicao(i) {
+            const p = pedidos[i];
+            document.getElementById('data').value = p.data;
+            document.getElementById('cliente').value = p.cliente;
+            document.getElementById('produto').value = p.produto;
+            document.getElementById('valor').value = p.valor;
+            document.getElementById('edit-index').value = i;
+            document.getElementById('btn-salvar').innerText = "ATUALIZAR VENDA";
+            document.getElementById('titulo-form').innerText = "✏️ Editando Pedido";
+            document.getElementById('btn-cancelar').style.display = "block";
+            window.scrollTo(0,0);
+        }
+
+        function cancelarEdicao() {
+            document.getElementById('edit-index').value = "-1";
+            document.getElementById('btn-salvar').innerText = "GRAVAR VENDA";
+            document.getElementById('titulo-form').innerText = "📝 Novo Pedido";
+            document.getElementById('btn-cancelar').style.display = "none";
+            limparCampos();
+        }
+
+        function excluirPedido(i) {
+            if (confirm("Deseja apagar este pedido?")) {
+                pedidos.splice(i, 1);
+                atualizarTudo();
+            }
+        }
+
+        function enviarPedido(i) {
+            const p = pedidos[i];
+            const msg = `*PEDIDO - MEL MANZOLI CONFEITARIA*\n\nOlá, *${p.cliente}*!\nDetalhes do pedido:\n\n📅 Data: ${p.data}\n🎂 Produto: ${p.produto}\n💰 Valor: *R$ ${p.valor.toFixed(2)}\n💳 PIX: 121.108.468-01\n\n\nObrigada! 👩🏻‍🍳`;
+            window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`);
+        }
+
+        function limparCampos() {
+            document.getElementById('cliente').value = "";
+            document.getElementById('produto').value = "";
+            document.getElementById('valor').value = "";
+            document.getElementById('data').valueAsDate = new Date();
+        }
+
+        function exportarBackup() {
+            const agora = new Date();
+            const blob = new Blob([JSON.stringify(pedidos)], {type: "application/json"});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `BACKUP_Mel_${agora.toLocaleDateString('pt-BR').replace(/\//g,'-')}_${agora.getHours()}h${agora.getMinutes()}.json`;
+            a.click();
+        }
+
+        function importarBackup(e) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                pedidos = JSON.parse(ev.target.result);
+                atualizarTudo();
+                alert("Dados restaurados!");
+            };
+            if(e.target.files[0]) reader.readAsText(e.target.files[0]);
+        }
+
+        renderizar();
+    </script>
+</body>
+</html>
